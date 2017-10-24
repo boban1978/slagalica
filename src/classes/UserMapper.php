@@ -9,8 +9,8 @@ class UserMapper extends Mapper
         from users u";
         $stmt = $this->db->query($sql);
         $results = [];
-        while($row = $stmt->fetch()) {
-            $results[] = $stmt->fetchObject(UserEntity::class);
+        while($user = $stmt->fetchObject(UserEntity::class)) {
+            $results[] = $user;
             //$results[] = new UserEntity($row);
         }
         return $results;

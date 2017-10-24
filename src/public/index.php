@@ -51,16 +51,16 @@ $app->get('/users', function (Request $request, Response $response) {
     $mapper = new UserMapper($this->db);
     $users = $mapper->getUsers();
 
-    $response->getBody()->write(var_export($users, true));
+    $response->getBody()->write(var_dump($users));
     return $response;
 });
 
 $app->get('/users/{id}', function (Request $request, Response $response, $args) {
-    $id = (int)$args['id'];
+    $id = (int) $args['id'];
     $mapper = new UserMapper($this->db);
     $user = $mapper->getUserById($id);
 
-    $response->getBody()->write(var_export($user, true));
+    $response->getBody()->write(var_dump($user));
     return $response;
 });
 
