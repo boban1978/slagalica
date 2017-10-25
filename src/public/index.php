@@ -1,4 +1,5 @@
 <?php
+use classes\GameMapper;
 use classes\UserEntity;
 use classes\UserMapper;
 use \Psr\Http\Message\ServerRequestInterface as Request;
@@ -37,24 +38,31 @@ $container['db'] = function ($c) {
 };
 
 
-// Define app routes
-$app->get('/hello/{name}', function (Request $request, Response $response, $args) {
-    $this->logger->addInfo("Ticket list");
 
-    $name = $request->getAttribute('name');
-    return $response->write("Hello, ". $name);
-});
-
-
-$app->get('/users', function (Request $request, Response $response) {
-    $this->logger->addInfo("Users list");
-    $mapper = new UserMapper($this->db);
-    $users = $mapper->getUsers();
-
-    $response->getBody()->write(var_dump($users));
+//ROUTES
+$app->get('/games', function (Request $request, Response $response) {
+    $this->logger->addInfo("get_available_games");
+    $mapper = new GameMapper($this->db);
+    $games = $mapper->getGames();
+    $response->getBody()->write(json_encode($games));
     return $response;
 });
 
+
+$app->post('/get_available_players', function (Request $request, Response $response) {
+    $this->logger->addInfo("get_available_players");
+
+    $data = $request->getParsedBody();
+    $gamesId = filter_var($data['games_id'], FILTER_SANITIZE_STRING);
+
+    $mapper = new UserMapper($this->db);
+    $users = $mapper->getAvailableUsers($gamesId);
+
+    $response->getBody()->write(json_encode($users));
+    return $response;
+});
+
+/*
 $app->get('/users/{id}', function (Request $request, Response $response, $args) {
     $id = (int) $args['id'];
     $mapper = new UserMapper($this->db);
@@ -62,15 +70,18 @@ $app->get('/users/{id}', function (Request $request, Response $response, $args) 
 
     $response->getBody()->write(var_dump($user));
     return $response;
-});
+});*/
 
-$app->post('/users/new', function (Request $request, Response $response) {
+$app->post('/join_game', function (Request $request, Response $response) {
     $data = $request->getParsedBody();
 
     $msisdn = filter_var($data['msisdn'], FILTER_SANITIZE_STRING);
+    $gamesId = filter_var($data['games_id'], FILTER_SANITIZE_STRING);
 
     $user = new UserEntity();
-    $user->setMsisdn($msisdn);
+    $user->id = $msisdn;
+    $user->games_id = $gamesId;
+    $user->timestamp = date('Y-m-d H:i:s');
 
     $mapper = new UserMapper($this->db);
     $id = $mapper->save($user);
@@ -78,6 +89,10 @@ $app->post('/users/new', function (Request $request, Response $response) {
     $response->getBody()->write(var_export($id, true));
     return $response;
 });
+
+
+
+
 
 // Run app
 $app->run();

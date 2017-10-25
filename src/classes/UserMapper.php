@@ -4,14 +4,18 @@ namespace classes;
 
 class UserMapper extends Mapper
 {
-    public function getUsers() {
-        $sql = "SELECT u.id, u.msisdn 
-        from users u";
-        $stmt = $this->db->query($sql);
+    public function getAvailableUsers($gamesId) {
+        $timestamp = date('Y-m-d H:i:s', time() - 20);
+        $sql = "SELECT *
+        from users WHERE games_id = :games_id AND `timestamp` > '" . $timestamp . "'";
+        $stmt = $this->db->prepare($sql);
+        $result = $stmt->execute(["games_id" => $gamesId]);
         $results = [];
-        while($user = $stmt->fetchObject(UserEntity::class)) {
-            $results[] = $user;
-            //$results[] = new UserEntity($row);
+        if ($result) {
+            while ($user = $stmt->fetchObject(UserEntity::class)) {
+                $results[] = $user;
+                //$results[] = new UserEntity($row);
+            }
         }
         return $results;
     }
@@ -22,9 +26,9 @@ class UserMapper extends Mapper
      * @return UserEntity  The user
      */
     public function getUserById($id) {
-        $sql = "SELECT u.id, u.msisdn
-            from users u
-            where u.id = :id";
+        $sql = "SELECT *
+            from users
+            where id = :id";
         $stmt = $this->db->prepare($sql);
         $result = $stmt->execute(["id" => $id]);
         if($result) {
@@ -33,38 +37,22 @@ class UserMapper extends Mapper
         }
     }
 
-    public function getUserByMsisdn($msisdn) {
-        $sql = "SELECT u.id, u.msisdn
-            from users u
-            where u.msisdn = :msisdn";
-        $stmt = $this->db->prepare($sql);
-        $result = $stmt->execute(["msisdn" => $msisdn]);
-        if($result) {
-            return $stmt->fetchObject(UserEntity::class);
-            //return new UserEntity($stmt->fetch());
-        }
-    }
-
     public function save(UserEntity $user) {
         $sql = "insert into users
-            (msisdn) values
-            (:msisdn)
-            ON DUPLICATE KEY UPDATE msisdn = :msisdn";
+            (id, games_id, `timestamp`) values
+            (:id, :games_id, :timestamp)
+            ON DUPLICATE KEY UPDATE games_id = :games_id, `timestamp` = :timestamp";
 
         $stmt = $this->db->prepare($sql);
         $result = $stmt->execute([
-            "msisdn" => $user->getMsisdn(),
+            "id" => $user->id,
+            "games_id" => $user->games_id,
+            "timestamp" => $user->timestamp
         ]);
         if(!$result) {
             throw new Exception("could not save record");
         }
 
-        $id = $this->db->lastInsertId();
-        if (!$id) {//updated
-            $userNew = $this->getUserByMsisdn($user->getMsisdn());
-            $id = $userNew->getId();
-        }
-
-        return (int) $id;
+        return true;
     }
 }
